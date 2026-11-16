@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FF Player Info Lookup</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(circle at top, #1a1f35 0%, #0b0e17 100%);
+            min-height: 100vh;
+        }
+        .gaming-font {
+            font-family: 'Rajdhani', sans-serif;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.04);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .neon-border:focus-within {
+            border-color: #f59e0b;
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.25);
+        }
+    </style>
+</head>
+<body class="text-slate-100 antialiased selection:bg-amber-500 selection:text-black">
+
+    <div class="max-w-4xl mx-auto px-4 py-10">
+        <!-- Header -->
+        <div class="text-center mb-10">
+            <span class="inline-block px-3 py-1 rounded-full text-xs font-semibold tracking-wider uppercase bg-amber-500/10 text-amber-400 border border-amber-500/20 mb-3">
+                Free Fire Profile Inspector
+            </span>
+            <h1 class="gaming-font text-4xl md:text-5xl font-bold tracking-wide text-white uppercase">
+                FF <span class="text-amber-500">UID</span> Lookup
+            </h1>
+            <p class="text-slate-400 text-sm mt-2">Enter any Free Fire Player UID to inspect live stats, banner, and character outfit</p>
+        </div>
+
+        <!-- Search Bar -->
+        <form id="searchForm" class="max-w-xl mx-auto mb-10">
+            <div class="glass-card neon-border rounded-2xl p-2 flex items-center gap-2 transition-all">
+                <input 
+                    type="text" 
+                    id="uidInput" 
+                    placeholder="Enter Player UID (e.g., 123456789)" 
+                    required
+                    pattern="[0-9]+"
+                    class="w-full bg-transparent px-4 py-3 text-white placeholder-slate-500 focus:outline-none text-lg gaming-font tracking-wider"
+                >
+                <button 
+                    type="submit" 
+                    id="searchBtn"
+                    class="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-black font-bold px-6 py-3 rounded-xl transition-all cursor-pointer uppercase gaming-font tracking-wider text-lg shrink-0"
+                >
+                    Search
+                </button>
+            </div>
+        </form>
+
+        <!-- Loading State -->
+        <div id="loader" class="hidden text-center py-12">
+            <div class="inline-block w-12 h-12 border-4 border-amber-500/30 border-t-amber-500 rounded-full animate-spin mb-4"></div>
+            <p class="gaming-font text-xl text-amber-400 tracking-wider uppercase animate-pulse">Fetching Player Data & Outfit...</p>
+        </div>
+
+        <!-- Error State -->
+        <div id="errorBox" class="hidden max-w-xl mx-auto bg-red-500/10 border border-red-500/30 text-red-300 px-6 py-4 rounded-2xl text-center mb-8">
+            <p id="errorText" class="font-medium"></p>
+        </div>
+
+        <!-- Results Container -->
+        <div id="resultSection" class="hidden space-y-6">
+            
+            <!-- Banner & Main Identity Card -->
+            <div class="glass-card rounded-3xl overflow-hidden">
+                <div id="bannerWrapper" class="w-full h-40 md:h-52 bg-slate-900 relative flex items-center justify-center overflow-hidden">
+                    <img id="bannerImg" src="" alt="Player Banner" class="w-full h-full object-cover hidden">
+                    <div id="bannerFallback" class="text-slate-600 gaming-font text-lg uppercase tracking-widest">No Banner Available</div>
+                    <div class="absolute inset-0 bg-gradient-to-t from-[#0f1422] via-transparent to-transparent"></div>
+                </div>
+
+                <div class="p-6 md:p-8 -mt-12 relative z-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
+                    <div>
+                        <div class="flex items-center gap-3 flex-wrap">
+                            <h2 id="playerName" class="gaming-font text-3xl md:text-4xl font-bold text-white">Unknown Player</h2>
+                            <span id="playerRegion" class="px-2.5 py-0.5 rounded-md bg-amber-500/20 text-amber-400 text-xs font-bold uppercase border border-amber-500/30">IND</span>
+                        </div>
+                        <p class="text-slate-400 text-sm mt-1">UID: <span id="displayUid" class="text-slate-200 font-mono">---</span></p>
+                    </div>
+                    <div class="flex gap-3">
+                        <div class="bg-slate-900/80 border border-white/10 px-4 py-2 rounded-xl text-center">
+                            <span class="block text-[10px] uppercase tracking-wider text-slate-400">Level</span>
+                            <span id="playerLevel" class="gaming-font text-2xl font-bold text-amber-400">--</span>
+                        </div>
+                        <div class="bg-slate-900/80 border border-white/10 px-4 py-2 rounded-xl text-center">
+                            <span class="block text-[10px] uppercase tracking-wider text-slate-400">Likes</span>
+                            <span id="playerLikes" class="gaming-font text-2xl font-bold text-emerald-400">--</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Outfit + Detailed Stats Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                
+                <!-- Character Outfit Preview -->
+                <div class="glass-card rounded-3xl p-6 flex flex-col items-center justify-between">
+                    <h3 class="gaming-font text-lg uppercase tracking-wider text-slate-400 w-full text-left border-b border-white/10 pb-2 mb-4">
+                        Character Outfit
+                    </h3>
+                    <div class="w-full h-72 flex items-center justify-center bg-slate-900/50 rounded-2xl overflow-hidden p-2">
+                        <img id="outfitImg" src="" alt="Character Outfit" class="max-h-full max-w-full object-contain hidden">
+                        <span id="outfitFallback" class="text-slate-600 text-sm">Outfit not available</span>
+                    </div>
+                </div>
+
+                <!-- Account & Guild Stats -->
+                <div class="md:col-span-2 glass-card rounded-3xl p-6 flex flex-col justify-between">
+                    <div>
+                        <h3 class="gaming-font text-lg uppercase tracking-wider text-slate-400 border-b border-white/10 pb-2 mb-4">
+                            Account Details
+                        </h3>
+                        <div id="statsGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                            <!-- Dynamic Stats will be injected here -->
+                        </div>
+                    </div>
+
+                    <!-- Signature / Bio -->
+                    <div class="mt-6 pt-4 border-t border-white/10">
+                        <span class="text-xs uppercase tracking-wider text-slate-500 block mb-1">Player Signature / Bio</span>
+                        <p id="playerBio" class="text-sm text-slate-300 italic bg-slate-900/50 p-3 rounded-xl border border-white/5">No signature set.</p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('searchForm');
+        const uidInput = document.getElementById('uidInput');
+        const loader = document.getElementById('loader');
+        const errorBox = document.getElementById('errorBox');
+        const errorText = document.getElementById('errorText');
+        const resultSection = document.getElementById('resultSection');
+
+        function formatTimestamp(ts) {
+            if (!ts || ts === 'None') return 'N/A';
+            const num = Number(ts);
+            if (isNaN(num)) return ts;
+            const date = new Date(num * 1000);
+            return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const uid = uidInput.value.trim();
+            if (!uid) return;
+
+            // Reset UI
+            errorBox.classList.add('hidden');
+            resultSection.classList.add('hidden');
+            loader.classList.remove('hidden');
+
+            try {
+                const res = await fetch(`/api/player?uid=${encodeURIComponent(uid)}`);
+                const data = await res.json();
+
+                if (!res.ok || data.error) {
+                    throw new Error(data.error || 'Failed to fetch player details.');
+                }
+
+                renderPlayerData(uid, data);
+            } catch (err) {
+                errorText.textContent = err.message;
+                errorBox.classList.remove('hidden');
+            } finally {
+                loader.classList.add('hidden');
+            }
+        });
+
+        function renderPlayerData(uid, data) {
+            const info = data.info?.basicInfo || data.info || {};
+            const clan = data.info?.clanBasicInfo || {};
+            const social = data.info?.socialInfo || {};
+
+            document.getElementById('playerName').textContent = info.nickname || info.name || 'Unknown Player';
+            document.getElementById('displayUid').textContent = info.accountId || uid;
+            document.getElementById('playerRegion').textContent = info.region || 'GLOBAL';
+            document.getElementById('playerLevel').textContent = info.level || '0';
+            document.getElementById('playerLikes').textContent = (info.liked || info.likes || 0).toLocaleString();
+            document.getElementById('playerBio').textContent = social.signature || info.signature || 'No bio available.';
+
+            // Banner Image
+            const bannerImg = document.getElementById('bannerImg');
+            const bannerFallback = document.getElementById('bannerFallback');
+            if (data.banner_base64) {
+                bannerImg.src = `data:image/png;base64,${data.banner_base64}`;
+                bannerImg.classList.remove('hidden');
+                bannerFallback.classList.add('hidden');
+            } else {
+                bannerImg.classList.add('hidden');
+                bannerFallback.classList.remove('hidden');
+            }
+
+            // Outfit Image
+            const outfitImg = document.getElementById('outfitImg');
+            const outfitFallback = document.getElementById('outfitFallback');
+            if (data.outfit_base64) {
+                outfitImg.src = `data:image/png;base64,${data.outfit_base64}`;
+                outfitImg.classList.remove('hidden');
+                outfitFallback.classList.add('hidden');
+            } else {
+                outfitImg.classList.add('hidden');
+                outfitFallback.classList.remove('hidden');
+            }
+
+            // Stats Grid Items
+            const stats = [
+                { label: 'BR Rank Points', value: info.rankingPoints ?? 'N/A' },
+                { label: 'CS Rank Points', value: info.csRankingPoints ?? 'N/A' },
+                { label: 'Badge Count', value: info.badgeCnt ?? '0' },
+                { label: 'Guild Name', value: clan.clanName || 'None' },
+                { label: 'Guild Level', value: clan.clanLevel || 'N/A' },
+                { label: 'Account Created', value: formatTimestamp(info.createAt) },
+                { label: 'Last Login', value: formatTimestamp(info.lastLoginAt) },
+                { label: 'OB Version', value: info.releaseVersion || 'OB53' }
+            ];
+
+            const statsGrid = document.getElementById('statsGrid');
+            statsGrid.innerHTML = stats.map(item => `
+                <div class="bg-slate-900/60 border border-white/5 p-3.5 rounded-2xl">
+                    <span class="text-[11px] uppercase tracking-wider text-slate-400 block">${item.label}</span>
+                    <span class="gaming-font text-lg font-semibold text-white mt-0.5 block truncate">${item.value}</span>
+                </div>
+            `).join('');
+
+            resultSection.classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
